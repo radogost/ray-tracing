@@ -1,38 +1,21 @@
+mod hittable;
+mod hittable_list;
 mod ray;
+mod sphere;
 mod vec;
 
+use crate::hittable::Hittable;
+use crate::hittable_list::HittableList;
 use crate::ray::Ray;
-
+use crate::sphere::Sphere;
 use crate::vec::write_color;
 use crate::vec::{Color, Point3, Vec3};
 
-fn hit_sphere(center: Point3, radius: f64, r: Ray) -> f64 {
-    let oc = r.origin - center;
-    let a = r.direction.dot(r.direction);
-    let b = 2.0 * oc.dot(r.direction);
-    let c = oc.dot(oc) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (-b - discriminant.sqrt()) / (2.0 * a)
-    }
-}
+use std::rc::Rc;
 
-fn ray_color(r: Ray) -> Color {
-    let sphere_center = Point3 {
-        x: 0.0,
-        y: 0.0,
-        z: -1.0,
-    };
-    let t = hit_sphere(sphere_center, 0.5, r);
-    if t > 0.0 {
-        let normal_vector = (r.at(t) - sphere_center).unit_vector();
-        return Color {
-            x: normal_vector.x,
-            y: normal_vector.y,
-            z: normal_vector.z,
-        };
+fn ray_color(r: Ray, world: &HittableList) -> Color {
+    if let Some(hit) = world.hit(&r, 0.0..f64::INFINITY) {
+        return hit.normal;
     }
     let unit_direction = r.direction.unit_vector();
     let t = 0.5 * (unit_direction.y + 1.0);
@@ -54,6 +37,27 @@ fn main() {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as u32;
+
+    // world
+    let mut world = HittableList::new();
+    let small_sphere = Sphere {
+        center: Point3 {
+            x: 0.0,
+            y: 0.0,
+            z: -1.0,
+        },
+        radius: 0.5,
+    };
+    let big_sphere = Sphere {
+        center: Point3 {
+            x: 0.0,
+            y: -100.5,
+            z: -1.0,
+        },
+        radius: 100.0,
+    };
+    world.add(Rc::new(small_sphere));
+    world.add(Rc::new(big_sphere));
 
     // camera
     let viewport_height = 2.0;
@@ -96,9 +100,9 @@ fn main() {
             let v = j as f64 / (image_height - 1) as f64;
             let r = Ray {
                 origin,
-                direction: lower_left_corner + horizontal * u + vertical * v - origin,
+                direction: lower_left_corner + horizontal * u + vertical * v,
             };
-            let c = ray_color(r);
+            let c = ray_color(r, &world);
             write_color(c);
         }
     }
