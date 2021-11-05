@@ -7,3 +7,7 @@ pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
         x
     }
 }
+
+pub fn random() -> f64 {
+    rand::random()
+}

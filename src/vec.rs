@@ -2,6 +2,8 @@ use crate::utils::clamp;
 
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
+use rand::Rng;
+
 #[derive(Copy, Clone)]
 pub struct Vec3 {
     pub x: f64,
@@ -10,6 +12,39 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
+    fn random_between(min: f64, max: f64) -> Self {
+        let mut rng = rand::thread_rng();
+        Self {
+            x: rng.gen_range(min..max),
+            y: rng.gen_range(min..max),
+            z: rng.gen_range(min..max),
+        }
+    }
+
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random_between(-1.0, 1.0);
+            if p.length_squared() >= 1.0 {
+                continue;
+            } else {
+                return p;
+            }
+        }
+    }
+
+    pub fn random_unit_vector() -> Self {
+        Self::random_in_unit_sphere().unit_vector()
+    }
+
+    pub fn random_in_hemisphere(normal: &Vec3) -> Self {
+        let in_unit_sphere = Self::random_in_unit_sphere();
+        if in_unit_sphere.dot(*normal) > 0.0 {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
+    }
+
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
@@ -101,10 +136,11 @@ pub use Vec3 as Point3;
 pub use Vec3 as Color;
 
 pub fn write_color(color: Color, samples_per_pixel: u32) {
+    // divide the color by the number of samples and gamma-correct for gamma=2.0
     let scale = 1.0 / samples_per_pixel as f64;
-    let r = color.x * scale;
-    let g = color.y * scale;
-    let b = color.z * scale;
+    let r = (color.x * scale).sqrt();
+    let g = (color.y * scale).sqrt();
+    let b = (color.z * scale).sqrt();
 
     let r = (256.0 * clamp(r, 0.0, 0.999)) as u32;
     let g = (256.0 * clamp(g, 0.0, 0.999)) as u32;

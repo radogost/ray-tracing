@@ -11,14 +11,27 @@ use crate::hittable::Hittable;
 use crate::hittable_list::HittableList;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
+use crate::utils::random;
 use crate::vec::write_color;
-use crate::vec::{Color, Point3};
+use crate::vec::{Color, Point3, Vec3};
 
 use std::rc::Rc;
 
-fn ray_color(r: Ray, world: &HittableList) -> Color {
-    if let Some(hit) = world.hit(&r, 0.0..f64::INFINITY) {
-        return hit.normal;
+fn ray_color(r: Ray, world: &HittableList, depth: u32) -> Color {
+    if depth <= 0 {
+        return Color {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        };
+    }
+    if let Some(hit) = world.hit(&r, 0.001..f64::INFINITY) {
+        let target = hit.point + hit.normal + Vec3::random_unit_vector();
+        let ray = Ray {
+            origin: hit.point,
+            direction: target - hit.point,
+        };
+        return ray_color(ray, world, depth - 1) * 0.5;
     }
     let unit_direction = r.direction.unit_vector();
     let t = 0.5 * (unit_direction.y + 1.0);
@@ -41,6 +54,7 @@ fn main() {
     let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as u32;
     let samples_per_pixel = 50;
+    let max_depth = 50;
 
     // world
     let mut world = HittableList::new();
@@ -80,10 +94,10 @@ fn main() {
                 z: 0.0,
             };
             for _ in 0..samples_per_pixel {
-                let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
-                let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
+                let u = (i as f64 + random()) / (image_width - 1) as f64;
+                let v = (j as f64 + random()) / (image_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
-                color = color + ray_color(ray, &world);
+                color = color + ray_color(ray, &world, max_depth);
             }
             write_color(color, samples_per_pixel);
         }
