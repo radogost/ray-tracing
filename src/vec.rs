@@ -1,3 +1,5 @@
+use crate::utils::clamp;
+
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone)]
@@ -98,10 +100,15 @@ impl Div<f64> for Vec3 {
 pub use Vec3 as Point3;
 pub use Vec3 as Color;
 
-pub fn write_color(color: Color) {
-    let r = (255.599 * color.x) as u32;
-    let g = (255.599 * color.y) as u32;
-    let b = (255.599 * color.z) as u32;
+pub fn write_color(color: Color, samples_per_pixel: u32) {
+    let scale = 1.0 / samples_per_pixel as f64;
+    let r = color.x * scale;
+    let g = color.y * scale;
+    let b = color.z * scale;
+
+    let r = (256.0 * clamp(r, 0.0, 0.999)) as u32;
+    let g = (256.0 * clamp(g, 0.0, 0.999)) as u32;
+    let b = (256.0 * clamp(b, 0.0, 0.999)) as u32;
 
     println!("{} {} {}", r, g, b);
 }
