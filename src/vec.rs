@@ -45,8 +45,15 @@ impl Vec3 {
         }
     }
 
-    pub fn reflect(&self, normal: &Vec3) -> Self {
-        *self - *normal * self.dot(*normal) * 2.0
+    pub fn reflect(&self, normal: Self) -> Self {
+        *self - normal * self.dot(normal) * 2.0
+    }
+
+    pub fn refract(&self, v: Self, etai_over_etat: f64) -> Self {
+        let cos_theta = (1.0 as f64).min(-v.dot(*self));
+        let r_out_perp = (*self + v * cos_theta) * etai_over_etat;
+        let r_out_parallel = -v * (1.0 - r_out_perp.length_squared()).abs().sqrt();
+        r_out_perp + r_out_parallel
     }
 
     pub fn near_zero(&self) -> bool {

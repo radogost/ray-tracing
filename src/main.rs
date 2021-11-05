@@ -10,7 +10,7 @@ mod vec;
 use crate::camera::Camera;
 use crate::hittable::Hittable;
 use crate::hittable_list::HittableList;
-use crate::material::{Lambertian, Metal};
+use crate::material::{Dielectric, Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::utils::random;
@@ -70,13 +70,8 @@ fn main() {
         },
         fuzz: 0.3,
     });
-    let right_sphere_material = Rc::new(Metal {
-        albedo: Color {
-            x: 0.8,
-            y: 0.4,
-            z: 0.4,
-        },
-        fuzz: 0.0,
+    let right_sphere_material = Rc::new(Dielectric {
+        refraction_index: 1.5,
     });
     let center_sphere_material = Rc::new(Lambertian {
         albedo: Color {
