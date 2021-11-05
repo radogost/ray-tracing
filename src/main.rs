@@ -1,6 +1,7 @@
 mod camera;
 mod hittable;
 mod hittable_list;
+mod material;
 mod ray;
 mod sphere;
 mod utils;
@@ -9,11 +10,12 @@ mod vec;
 use crate::camera::Camera;
 use crate::hittable::Hittable;
 use crate::hittable_list::HittableList;
+use crate::material::{Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::utils::random;
 use crate::vec::write_color;
-use crate::vec::{Color, Point3, Vec3};
+use crate::vec::{Color, Point3};
 
 use std::rc::Rc;
 
@@ -26,12 +28,15 @@ fn ray_color(r: Ray, world: &HittableList, depth: u32) -> Color {
         };
     }
     if let Some(hit) = world.hit(&r, 0.001..f64::INFINITY) {
-        let target = hit.point + hit.normal + Vec3::random_unit_vector();
-        let ray = Ray {
-            origin: hit.point,
-            direction: target - hit.point,
-        };
-        return ray_color(ray, world, depth - 1) * 0.5;
+        if let Some((scattered, attenuation)) = hit.material.scatter(&r, &hit) {
+            return ray_color(scattered, world, depth - 1) * attenuation;
+        } else {
+            return Color {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            };
+        }
     }
     let unit_direction = r.direction.unit_vector();
     let t = 0.5 * (unit_direction.y + 1.0);
@@ -57,25 +62,77 @@ fn main() {
     let max_depth = 50;
 
     // world
+    let left_sphere_material = Rc::new(Metal {
+        albedo: Color {
+            x: 0.8,
+            y: 0.8,
+            z: 0.8,
+        },
+        fuzz: 0.3,
+    });
+    let right_sphere_material = Rc::new(Metal {
+        albedo: Color {
+            x: 0.8,
+            y: 0.4,
+            z: 0.4,
+        },
+        fuzz: 0.0,
+    });
+    let center_sphere_material = Rc::new(Lambertian {
+        albedo: Color {
+            x: 0.3,
+            y: 0.3,
+            z: 0.8,
+        },
+    });
+    let ground_material = Rc::new(Lambertian {
+        albedo: Color {
+            x: 0.1,
+            y: 0.8,
+            z: 0.4,
+        },
+    });
     let mut world = HittableList::new();
-    let small_sphere = Sphere {
+    let left_sphere = Sphere {
+        center: Point3 {
+            x: -1.1,
+            y: 0.0,
+            z: -1.0,
+        },
+        radius: 0.5,
+        material: left_sphere_material,
+    };
+    let right_sphere = Sphere {
+        center: Point3 {
+            x: 1.1,
+            y: 0.0,
+            z: -1.0,
+        },
+        radius: 0.5,
+        material: right_sphere_material,
+    };
+    let center_sphere = Sphere {
         center: Point3 {
             x: 0.0,
             y: 0.0,
             z: -1.0,
         },
         radius: 0.5,
+        material: center_sphere_material,
     };
-    let big_sphere = Sphere {
+    let ground = Sphere {
         center: Point3 {
             x: 0.0,
             y: -100.5,
             z: -1.0,
         },
         radius: 100.0,
+        material: ground_material,
     };
-    world.add(Rc::new(small_sphere));
-    world.add(Rc::new(big_sphere));
+    world.add(Rc::new(left_sphere));
+    world.add(Rc::new(right_sphere));
+    world.add(Rc::new(center_sphere));
+    world.add(Rc::new(ground));
 
     // camera
     let camera = Camera::new();
