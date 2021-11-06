@@ -12,7 +12,16 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-    fn random_between(min: f64, max: f64) -> Self {
+    pub fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        Self {
+            x: rng.gen(),
+            y: rng.gen(),
+            z: rng.gen(),
+        }
+    }
+
+    pub fn random_between(min: f64, max: f64) -> Self {
         let mut rng = rand::thread_rng();
         Self {
             x: rng.gen_range(min..max),

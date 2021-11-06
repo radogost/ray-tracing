@@ -10,12 +10,14 @@ mod vec;
 use crate::camera::Camera;
 use crate::hittable::Hittable;
 use crate::hittable_list::HittableList;
-use crate::material::{Dielectric, Lambertian, Metal};
+use crate::material::{Dielectric, Lambertian, Material, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::utils::random;
 use crate::vec::write_color;
-use crate::vec::{Color, Point3};
+use crate::vec::{Color, Point3, Vec3};
+
+use rand::Rng;
 
 use std::rc::Rc;
 
@@ -53,123 +55,138 @@ fn ray_color(r: Ray, world: &HittableList, depth: u32) -> Color {
     start_color * (1.0 - t) + end_color * t
 }
 
-fn main() {
-    // image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
-    let image_height = (image_width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel = 200;
-    let max_depth = 50;
-
-    // world
-    let left_sphere_material = Rc::new(Metal {
-        albedo: Color {
-            x: 0.8,
-            y: 0.8,
-            z: 0.8,
-        },
-        fuzz: 0.3,
-    });
-    let rear_sphere_material = Rc::new(Metal {
-        albedo: Color {
-            x: 0.8,
-            y: 0.2,
-            z: 0.2,
-        },
-        fuzz: 0.0,
-    });
-    let right_sphere_material = Rc::new(Dielectric {
-        refraction_index: 1.5,
-    });
-    let center_sphere_material = Rc::new(Lambertian {
-        albedo: Color {
-            x: 0.3,
-            y: 0.3,
-            z: 0.8,
-        },
-    });
+fn scene() -> HittableList {
+    let mut world = HittableList::new();
     let ground_material = Rc::new(Lambertian {
         albedo: Color {
-            x: 0.1,
-            y: 0.8,
-            z: 0.4,
+            x: 0.5,
+            y: 0.5,
+            z: 0.5,
         },
     });
-    let mut world = HittableList::new();
-    let left_sphere = Sphere {
-        center: Point3 {
-            x: -1.1,
-            y: 0.0,
-            z: -1.0,
-        },
-        radius: 0.5,
-        material: left_sphere_material,
-    };
-    let rear_sphere = Sphere {
-        center: Point3 {
-            x: 0.0,
-            y: 0.0,
-            z: -2.1,
-        },
-        radius: 0.5,
-        material: rear_sphere_material,
-    };
-    let right_sphere = Sphere {
-        center: Point3 {
-            x: 1.1,
-            y: 0.0,
-            z: -1.0,
-        },
-        radius: 0.5,
-        material: right_sphere_material,
-    };
-    let center_sphere = Sphere {
-        center: Point3 {
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-        },
-        radius: 0.5,
-        material: center_sphere_material,
-    };
     let ground = Sphere {
         center: Point3 {
             x: 0.0,
-            y: -100.5,
-            z: -1.0,
+            y: -1000.0,
+            z: 0.0,
         },
-        radius: 100.0,
+        radius: 1000.0,
         material: ground_material,
     };
-    world.add(Rc::new(left_sphere));
-    world.add(Rc::new(right_sphere));
-    world.add(Rc::new(rear_sphere));
-    world.add(Rc::new(center_sphere));
     world.add(Rc::new(ground));
+
+    let refpoint = Point3 {
+        x: 4.0,
+        y: 0.2,
+        z: 0.0,
+    };
+
+    let mut thread_rng = rand::thread_rng();
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = random();
+            let center = Point3 {
+                x: a as f64 + 0.9 * random(),
+                y: 0.2,
+                z: b as f64 + 0.9 * random(),
+            };
+
+            if (center - refpoint).length() > 0.9 {
+                let sphere_material: Rc<dyn Material> = if choose_mat < 0.8 {
+                    //diffuse
+                    let albedo: Color = Vec3::random() * Vec3::random();
+                    Rc::new(Lambertian { albedo })
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo: Color = Vec3::random_between(0.5, 1.0);
+                    let fuzz = thread_rng.gen_range(0.0..0.3);
+                    Rc::new(Metal { albedo, fuzz })
+                } else {
+                    // glass
+                    Rc::new(Dielectric {
+                        refraction_index: 1.5,
+                    })
+                };
+                let sphere = Sphere {
+                    center,
+                    radius: 0.2,
+                    material: sphere_material,
+                };
+                world.add(Rc::new(sphere));
+            }
+        }
+    }
+
+    let glass = Dielectric {
+        refraction_index: 1.5,
+    };
+    let glass_sphere = Sphere {
+        center: Point3 {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        radius: 1.0,
+        material: Rc::new(glass),
+    };
+    world.add(Rc::new(glass_sphere));
+
+    let metal = Metal {
+        albedo: Color {
+            x: 0.7,
+            y: 0.6,
+            z: 0.5,
+        },
+        fuzz: 0.0,
+    };
+    let metal_sphere = Sphere {
+        center: Point3 {
+            x: 4.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        radius: 1.0,
+        material: Rc::new(metal),
+    };
+    world.add(Rc::new(metal_sphere));
+
+    world
+}
+
+fn main() {
+    // image
+    let aspect_ratio = 3.0 / 2.0;
+    let image_width = 1200;
+    let image_height = (image_width as f64 / aspect_ratio) as u32;
+    let samples_per_pixel = 500;
+    let max_depth = 50;
+
+    // world
+    let world = scene();
 
     // camera
     let lookfrom = Point3 {
-        x: 2.0,
+        x: 13.0,
         y: 2.0,
-        z: 1.0,
+        z: 3.0,
     };
     let lookat = Point3 {
         x: 0.0,
         y: 0.0,
-        z: -1.0,
+        z: 0.0,
     };
     let vup = Point3 {
         x: 0.0,
         y: 1.0,
         z: 0.0,
     };
-    let dist_to_focus = (lookfrom - lookat).length();
+    let dist_to_focus = 10.0;
     let aperture = 0.1;
     let camera = Camera::new(
         lookfrom,
         lookat,
         vup,
-        30.0,
+        20.0,
         aspect_ratio,
         aperture,
         dist_to_focus,
