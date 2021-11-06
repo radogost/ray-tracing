@@ -70,6 +70,14 @@ fn main() {
         },
         fuzz: 0.3,
     });
+    let rear_sphere_material = Rc::new(Metal {
+        albedo: Color {
+            x: 0.8,
+            y: 0.2,
+            z: 0.2,
+        },
+        fuzz: 0.0,
+    });
     let right_sphere_material = Rc::new(Dielectric {
         refraction_index: 1.5,
     });
@@ -96,6 +104,15 @@ fn main() {
         },
         radius: 0.5,
         material: left_sphere_material,
+    };
+    let rear_sphere = Sphere {
+        center: Point3 {
+            x: 0.0,
+            y: 0.0,
+            z: -2.1,
+        },
+        radius: 0.5,
+        material: rear_sphere_material,
     };
     let right_sphere = Sphere {
         center: Point3 {
@@ -126,6 +143,7 @@ fn main() {
     };
     world.add(Rc::new(left_sphere));
     world.add(Rc::new(right_sphere));
+    world.add(Rc::new(rear_sphere));
     world.add(Rc::new(center_sphere));
     world.add(Rc::new(ground));
 
@@ -145,7 +163,17 @@ fn main() {
         y: 1.0,
         z: 0.0,
     };
-    let camera = Camera::new(lookfrom, lookat, vup, 20.0, aspect_ratio);
+    let dist_to_focus = (lookfrom - lookat).length();
+    let aperture = 0.1;
+    let camera = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        30.0,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+    );
 
     // render
     println!("P3");
