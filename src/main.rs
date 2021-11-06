@@ -20,7 +20,7 @@ use crate::vec::{Color, Point3};
 use std::rc::Rc;
 
 fn ray_color(r: Ray, world: &HittableList, depth: u32) -> Color {
-    if depth <= 0 {
+    if depth == 0 {
         return Color {
             x: 0.0,
             y: 0.0,

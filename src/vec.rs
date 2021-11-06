@@ -52,21 +52,12 @@ impl Vec3 {
         }
     }
 
-    pub fn random_in_hemisphere(normal: &Vec3) -> Self {
-        let in_unit_sphere = Self::random_in_unit_sphere();
-        if in_unit_sphere.dot(*normal) > 0.0 {
-            in_unit_sphere
-        } else {
-            -in_unit_sphere
-        }
-    }
-
     pub fn reflect(&self, normal: Self) -> Self {
         *self - normal * self.dot(normal) * 2.0
     }
 
     pub fn refract(&self, v: Self, etai_over_etat: f64) -> Self {
-        let cos_theta = (1.0 as f64).min(-v.dot(*self));
+        let cos_theta = (1.0_f64).min(-v.dot(*self));
         let r_out_perp = (*self + v * cos_theta) * etai_over_etat;
         let r_out_parallel = -v * (1.0 - r_out_perp.length_squared()).abs().sqrt();
         r_out_perp + r_out_parallel

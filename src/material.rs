@@ -73,7 +73,7 @@ impl Material for Dielectric {
         };
 
         let unit_direction = ray_in.direction.unit_vector();
-        let cos_theta = (1.0 as f64).min(-unit_direction.dot(hit.normal));
+        let cos_theta = (1.0_f64).min(-unit_direction.dot(hit.normal));
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
