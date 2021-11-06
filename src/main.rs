@@ -130,7 +130,22 @@ fn main() {
     world.add(Rc::new(ground));
 
     // camera
-    let camera = Camera::new();
+    let lookfrom = Point3 {
+        x: 2.0,
+        y: 2.0,
+        z: 1.0,
+    };
+    let lookat = Point3 {
+        x: 0.0,
+        y: 0.0,
+        z: -1.0,
+    };
+    let vup = Point3 {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0,
+    };
+    let camera = Camera::new(lookfrom, lookat, vup, 20.0, aspect_ratio);
 
     // render
     println!("P3");
